@@ -1,0 +1,55 @@
+{{- if .Values.postgres.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cache-poc.fullname" . }}-postgres
+  labels:
+    {{- include "cache-poc.labels" . | nindent 4 }}
+    app.kubernetes.io/component: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "cache-poc.fullname" . }}-postgres
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "cache-poc.fullname" . }}-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: {{ .Values.postgres.image }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "cache-poc.fullname" . }}-db
+                  key: database
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "cache-poc.fullname" . }}-db
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "cache-poc.fullname" . }}-db
+                  key: password
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "cache-poc.fullname" . }}-postgres
+  labels:
+    {{- include "cache-poc.labels" . | nindent 4 }}
+    app.kubernetes.io/component: postgres
+spec:
+  selector:
+    app.kubernetes.io/name: {{ include "cache-poc.fullname" . }}-postgres
+  ports:
+    - port: {{ .Values.postgres.servicePort }}
+      targetPort: 5432
+{{- end }}

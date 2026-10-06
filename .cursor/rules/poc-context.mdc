@@ -1,0 +1,22 @@
+---
+description: POC context — migrate in-memory cache to Redis/Valkey in multi-pod Kubernetes
+alwaysApply: true
+---
+
+# Distributed Cache POC
+
+Migrate application caching from local in-memory storage (HashMaps) to Redis/Valkey. The app runs in a containerized, multi-pod Kubernetes environment behind a VIP. **Data consistency across all pods is the primary objective.**
+
+## Tech stack
+
+- Backend: Java 17, Spring Boot 3.x
+- Database: PostgreSQL
+- Cache: Redis (Valkey compatible)
+- Infrastructure: Docker, Kubernetes, Helm
+
+## Non-negotiables
+
+- Pods must be stateless. Never cache in local variables, static maps, or `ConcurrentHashMap`.
+- Externalize all application state and cache to Redis.
+- The app updates cache on mutation. Do not add or rely on manual cache-refresh URLs.
+- Never hardcode credentials, PII, or real financial company names. Use placeholders (e.g. `FinancialCorp`).

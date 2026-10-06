@@ -1,0 +1,34 @@
+---
+description: Write-through Redis cache with Spring Cache annotations; no local maps
+globs: "**/*.java"
+alwaysApply: false
+---
+
+# Spring Cache (write-through)
+
+Use Spring Cache against Redis. Do not keep cache in process memory.
+
+## Retrieval and mutation
+
+- `@Cacheable` on reads: Redis first, then DB.
+- `@CachePut` or `@CacheEvict` on POST/PUT/DELETE so every pod sees the update immediately.
+- Cache keys must be stable and explicit (`unless`, `key`, cache names). Do not invent a refresh endpoint.
+
+```java
+// ❌ BAD — pod-local cache
+private static final Map<Long, Account> CACHE = new ConcurrentHashMap<>();
+
+// ✅ GOOD
+@Cacheable(cacheNames = "accounts", key = "#id")
+public Account getAccount(Long id) { return repository.findById(id).orElseThrow(); }
+
+@CachePut(cacheNames = "accounts", key = "#result.id")
+public Account updateAccount(Account account) { return repository.save(account); }
+
+@CacheEvict(cacheNames = "accounts", key = "#id")
+public void deleteAccount(Long id) { repository.deleteById(id); }
+```
+
+## Entities
+
+JPA entities stored in Redis must implement `Serializable`.

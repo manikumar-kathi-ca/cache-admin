@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cache-poc.fullname" . }}
+  labels:
+    {{- include "cache-poc.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "cache-poc.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "cache-poc.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: app
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.service.targetPort }}
+          env:
+            - name: DATABASE_URL
+              value: "jdbc:postgresql://{{ include "cache-poc.fullname" . }}-postgres:{{ .Values.postgres.servicePort }}/{{ .Values.postgres.database }}"
+            - name: DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "cache-poc.fullname" . }}-db
+                  key: username
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "cache-poc.fullname" . }}-db
+                  key: password
+            - name: REDIS_HOST
+              value: "{{ include "cache-poc.fullname" . }}-redis"
+            - name: REDIS_PORT
+              value: "{{ .Values.redis.servicePort }}"
+            - name: JPA_DDL_AUTO
+              value: "{{ .Values.app.env.jpaDdlAuto }}"
+            - name: CACHE_DB_NOTIFY_ENABLED
+              value: "{{ .Values.app.env.dbNotifyEnabled }}"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: {{ .Values.service.targetPort }}
+            initialDelaySeconds: 40
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: {{ .Values.service.targetPort }}
+            initialDelaySeconds: 20

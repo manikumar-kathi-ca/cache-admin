@@ -1,0 +1,25 @@
+---
+description: Externalize DB and Redis endpoints in application.yml via env vars
+globs: "**/application*.{yml,yaml,properties}"
+alwaysApply: false
+---
+
+# Spring Boot configuration
+
+Put infrastructure endpoints in `application.yml`. Use environment variables with local defaults. Never hardcode credentials.
+
+```yaml
+# ✅ GOOD
+spring:
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/appdb}
+    username: ${DATABASE_USERNAME:app}
+    password: ${DATABASE_PASSWORD:changeme}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+```
+
+- Default Redis host: `${REDIS_HOST:localhost}`
+- Talk to Postgres and Redis by Kubernetes Service names in cluster, not pod IPs.

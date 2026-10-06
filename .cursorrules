@@ -1,0 +1,24 @@
+# Context
+We are building a Proof of Concept (POC) to migrate application caching from local in-memory storage (HashMaps) to a distributed caching architecture using Redis/Valkey. The application operates in a containerized, multi-pod Kubernetes environment behind a Virtual IP (VIP). Data consistency across all pods is the primary objective.
+
+# Tech Stack
+- Backend: Java 17, Spring Boot 3.x
+- Database: PostgreSQL
+- Cache: Redis (Valkey compatible)
+- Infrastructure: Docker, Kubernetes, Helm
+
+# Architecture & Design Rules
+- **Stateless Pods:** Never use local variables, static maps, or `ConcurrentHashMap` for caching data. All application state and cache must be externalized to Redis.
+- **Cache Synchronization:** Implement a write-through caching strategy using Spring Cache annotations.
+  - Use `@Cacheable` for retrieval (fetch from Redis first, fallback to DB).
+  - Use `@CachePut` or `@CacheEvict` on mutation operations (POST/PUT/DELETE) to ensure the distributed cache is immediately updated across all pods.
+- **Embedded Refresh Trigger:** The application itself is responsible for updating the cache upon data mutation. Do not rely on manual cache refresh URLs.
+
+# Coding Standards
+- **Spring Boot:** Externalize all infrastructure endpoints (Database URL, Redis Host) to `application.yml` using environment variables with defaults (e.g., `${REDIS_HOST:localhost}`).
+- **Entity Management:** Ensure all JPA entities cached in Redis implement `Serializable`.
+- **Security & Privacy:** Never hardcode credentials, PII, or actual financial company names in the source code or test data. Use generic placeholders (e.g., `FinancialCorp`).
+
+# Infrastructure Standards
+- **Docker:** Use lightweight multi-arch images (e.g., `eclipse-temurin:17-jre-jammy`). Avoid Temurin `*-alpine` tags on Apple Silicon (no linux/arm64). Ensure the `imagePullPolicy` in Kubernetes manifests is set to `IfNotPresent` for local testing.
+- **Helm:** Parameterize database credentials, image versions, and replica counts in `values.yaml`. Use Kubernetes Services for all inter-container communication (e.g., App to Redis, App to Postgres).

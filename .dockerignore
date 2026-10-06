@@ -1,0 +1,7 @@
+target
+.git
+.cursor
+.cursorrules
+helm
+*.md
+.idea

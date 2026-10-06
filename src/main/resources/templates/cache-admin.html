@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cache Admin</title>
+  <style>
+    :root { color-scheme: light; --bg: #0f172a; --card: #1e293b; --text: #e2e8f0; --muted: #94a3b8; --accent: #38bdf8; --danger: #fb7185; --ok: #34d399; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; background: var(--bg); color: var(--text); }
+    header { padding: 24px 32px; border-bottom: 1px solid #334155; }
+    h1 { margin: 0 0 6px; font-size: 1.4rem; }
+    p { margin: 0; color: var(--muted); }
+    main { padding: 24px 32px; display: grid; gap: 20px; }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; }
+    button { background: #334155; color: var(--text); border: 0; border-radius: 8px; padding: 8px 12px; cursor: pointer; }
+    button.danger { background: #9f1239; }
+    button.ok { background: #065f46; }
+    .card { background: var(--card); border-radius: 12px; padding: 16px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 8px; border-bottom: 1px solid #334155; font-size: 0.9rem; }
+    .keys { color: var(--muted); font-family: ui-monospace, monospace; }
+    .status { color: var(--accent); }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Redis cache admin</h1>
+  <p>Flush or drop cache regions used by all pods. Database mutations still write through automatically.</p>
+</header>
+<main>
+  <section class="card">
+    <p class="status" id="status">Loading…</p>
+    <div class="row" style="margin-top:12px">
+      <button class="ok" onclick="flushAll()">Flush all caches</button>
+      <button class="danger" onclick="flushRedis()">Drop Redis DB (FLUSHDB)</button>
+      <button onclick="load()">Refresh</button>
+    </div>
+  </section>
+  <section class="card">
+    <table>
+      <thead>
+        <tr><th>Cache</th><th>Keys</th><th></th></tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </section>
+</main>
+<script>
+  async function load() {
+    const status = await (await fetch('/admin/api/caches/status')).json();
+    document.getElementById('status').textContent =
+      `Backend: ${status.backend} · caches: ${(status.caches || []).join(', ')} · keys: ${status.keyCount}`;
+    const caches = await (await fetch('/admin/api/caches')).json();
+    document.getElementById('rows').innerHTML = caches.map(c => `
+      <tr>
+        <td>${c.name}</td>
+        <td class="keys">${(c.keys || []).join('<br>') || '—'}</td>
+        <td>
+          <button onclick="flush('${c.name}')">Flush</button>
+        </td>
+      </tr>`).join('');
+  }
+  async function flush(name) {
+    await fetch('/admin/api/caches/' + encodeURIComponent(name) + '/flush', { method: 'POST' });
+    load();
+  }
+  async function flushAll() {
+    await fetch('/admin/api/caches/flush-all', { method: 'POST' });
+    load();
+  }
+  async function flushRedis() {
+    if (!confirm('This removes every key in the Redis database used by this app. Continue?')) return;
+    await fetch('/admin/api/caches/flush-redis', { method: 'POST' });
+    load();
+  }
+  load();
+</script>
+</body>
+</html>

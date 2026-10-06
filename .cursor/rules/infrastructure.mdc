@@ -1,0 +1,27 @@
+---
+description: Docker, Kubernetes, and Helm standards for local multi-pod cache testing
+globs: "{Dockerfile*,**/Dockerfile*,**/*.{yaml,yml}}"
+alwaysApply: false
+---
+
+# Infrastructure
+
+## Docker
+
+- Use lightweight multi-arch images (Apple Silicon included). Prefer `eclipse-temurin:17-jre-jammy` / `maven:3.9.9-eclipse-temurin-17`. Avoid `*-alpine` Temurin tags — they often have no `linux/arm64` manifest.
+- Do not bake secrets into images.
+
+## Kubernetes
+
+- Set `imagePullPolicy: IfNotPresent` for local testing.
+- Use Kubernetes Services for App → Redis and App → Postgres. Never hardcode pod IPs.
+
+## Helm
+
+Parameterize in `values.yaml`:
+
+- database credentials (via secrets/values, not committed plaintext prod secrets)
+- image version
+- replica count (must support >1 replica so cache consistency can be proven)
+
+Keep Redis and Postgres as chart/services the app Deployment talks to by Service DNS.

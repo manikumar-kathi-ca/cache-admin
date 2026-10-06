@@ -1,0 +1,29 @@
+replicaCount: 2
+
+image:
+  repository: cache-poc
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+postgres:
+  enabled: true
+  image: postgres:16-alpine
+  database: appdb
+  username: app
+  password: changeme
+  servicePort: 5432
+
+redis:
+  enabled: true
+  image: redis:7-alpine
+  servicePort: 6379
+
+app:
+  env:
+    jpaDdlAuto: update
+    dbNotifyEnabled: "true"
